@@ -1,3 +1,3 @@
-module ira/remote
+module ira/goremote
 
 go 1.21.4
