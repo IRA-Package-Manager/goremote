@@ -49,7 +49,7 @@ func (mux *RemoteMux) pkgList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i, pkg := range pkgs {
-		pkgs[i] = strings.TrimSuffix(pkg, ".json")
+		pkgs[i] = filepath.Base(strings.TrimSuffix(pkg, ".json"))
 	}
 	res := result{pkgs, ""}
 	json.NewEncoder(w).Encode(res)
@@ -59,8 +59,8 @@ func (mux *RemoteMux) pkgSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	if !query.Has("name") {
 		w.WriteHeader(http.StatusBadRequest)
-
 		json.NewEncoder(w).Encode(result{nil, "Required field name"})
+		return
 	}
 
 	files, err := filepath.Glob(fmt.Sprintf("%s/%s.json", mux.dir, filepath.Base(query.Get("name"))))
@@ -85,7 +85,6 @@ func (mux *RemoteMux) pkgSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		pkgs = append(pkgs, pkg)
-		json.NewEncoder(w).Encode(result{pkgs, ""})
 	}
 	json.NewEncoder(w).Encode(result{pkgs, ""})
 }
