@@ -20,7 +20,7 @@ func RemoteServe(host *C.char, port int, unsafeDirectory *C.char) (int, *C.char)
 }
 
 func main() {
-	// Test
+	// The same as ipkg run_server
 	directory := os.Args[1]
 	if _, err := os.Stat(directory); err != nil {
 		fmt.Fprintln(os.Stderr, "directory not exists")
