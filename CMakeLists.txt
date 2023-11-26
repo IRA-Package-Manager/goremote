@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 project(GoRemoteFFI)
 
 set(TARGET remote_server_go)
-file(GLOB SRC ./*.go)
+file(GLOB SRC ./util/*.go)
 set(GOPATH ${CMAKE_CURRENT_BINARY_DIR})
 set(LIB remote.a)
 find_program(GOLANG go REQUIRED)
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${LIB}
-  DEPENDS ${SRC}
+  DEPENDS server.go ${SRC}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMAND env GOPATH=${GOPATH} ${GOLANG} build -buildmode=c-archive -o "${CMAKE_CURRENT_BINARY_DIR}/${LIB}" .
   COMMENT "Building ira/goremote library..."
