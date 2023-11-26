@@ -31,7 +31,7 @@ func NewRemoteMux(dir string) *RemoteMux {
 	mux := &RemoteMux{dir: dir, ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 		w.WriteHeader(500)
 		fmt.Fprintf(w, "Error: %v", err)
-	}}
+	}, mux: http.NewServeMux()}
 	mux.mux.HandleFunc("/list", mux.pkgList)
 	mux.mux.HandleFunc("/get", mux.pkgSearch)
 	return mux
