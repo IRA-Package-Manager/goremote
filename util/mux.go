@@ -14,6 +14,7 @@ type Package struct {
 	Version      string     `json:"version"`
 	Dependencies []*Package `json:"deps"`
 	DependentBy  []*Package `json:"needed"`
+	FileName     string     `json:"file"`
 }
 
 type result struct {
@@ -33,7 +34,8 @@ func NewRemoteMux(dir string) *RemoteMux {
 		fmt.Fprintf(w, "Error: %v", err)
 	}, mux: http.NewServeMux()}
 	mux.mux.HandleFunc("/list", mux.pkgList)
-	mux.mux.HandleFunc("/get", mux.pkgSearch)
+	mux.mux.HandleFunc("/info", mux.pkgInfo)
+	mux.mux.HandleFunc("/get", mux.loadPkg)
 	return mux
 }
 
@@ -42,7 +44,13 @@ func (mux *RemoteMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mux *RemoteMux) pkgList(w http.ResponseWriter, r *http.Request) {
-	pkgs, err := filepath.Glob(filepath.Join(mux.dir, "*.json"))
+	query := r.URL.Query()
+	name := "*"
+	if query.Has("name") {
+		name = query.Get("name")
+	}
+
+	pkgs, err := filepath.Glob(filepath.Join(mux.dir, fmt.Sprintf("%s.json", filepath.Base(name))))
 	if err != nil {
 		mux.ErrorHandler(w, r, err)
 		return
@@ -55,15 +63,14 @@ func (mux *RemoteMux) pkgList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(res)
 }
 
-func (mux *RemoteMux) pkgSearch(w http.ResponseWriter, r *http.Request) {
+func (mux *RemoteMux) pkgInfo(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	if !query.Has("name") {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(result{nil, "Required field name"})
-		return
+	name := "*"
+	if query.Has("name") {
+		name = query.Get("name")
 	}
 
-	files, err := filepath.Glob(fmt.Sprintf("%s/%s.json", mux.dir, filepath.Base(query.Get("name"))))
+	files, err := filepath.Glob(filepath.Join(mux.dir, fmt.Sprintf("%s.json", filepath.Base(name))))
 	if err != nil {
 		mux.ErrorHandler(w, r, err)
 		return
@@ -87,4 +94,39 @@ func (mux *RemoteMux) pkgSearch(w http.ResponseWriter, r *http.Request) {
 		pkgs = append(pkgs, pkg)
 	}
 	json.NewEncoder(w).Encode(result{pkgs, ""})
+}
+
+func (mux *RemoteMux) loadPkg(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	if !query.Has("name") {
+		w.WriteHeader(http.StatusBadRequest)
+
+		fmt.Fprintln(w, "key \"name\" is required")
+		return
+	}
+
+	pkgname := filepath.Base(query.Get("name"))
+
+	file, err := os.Open(filepath.Join(mux.dir, pkgname+".json"))
+	if os.IsNotExist(err) {
+		w.WriteHeader(http.StatusBadRequest)
+
+		fmt.Fprintf(w, "no package %q found\n", pkgname)
+		return
+	}
+
+	if err != nil {
+		mux.ErrorHandler(w, r, err)
+		return
+	}
+
+	var data Package
+	err = json.NewDecoder(file).Decode(&data)
+
+	if err != nil {
+		mux.ErrorHandler(w, r, err)
+		return
+	}
+
+	http.ServeFile(w, r, filepath.Join(mux.dir, "pkgs", data.FileName+".ipkg"))
 }
