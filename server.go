@@ -3,7 +3,7 @@ package main
 import "C"
 import (
 	"fmt"
-	"ira/goremote/util"
+	"github.com/IRA-Package-Manager/goremote/util"
 	"net/http"
 	"os"
 )
