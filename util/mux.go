@@ -119,6 +119,7 @@ func (mux *RemoteMux) loadPkg(w http.ResponseWriter, r *http.Request) {
 		mux.ErrorHandler(w, r, err)
 		return
 	}
+	defer file.Close()
 
 	var data Package
 	err = json.NewDecoder(file).Decode(&data)
